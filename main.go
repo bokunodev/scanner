@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/google/gousb"
 )
@@ -15,6 +16,12 @@ const (
 	product             = "SYC ID&IC USB Reader"
 	productmanufacturer = "Sycreader RFID Technology Co., Ltd SYC ID&IC USB Reader"
 )
+
+func init() {
+	log.SetPrefix("LOG ")
+	log.SetOutput(os.Stderr)
+	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
+}
 
 func main() {
 	usbctx := gousb.NewContext()
@@ -51,7 +58,8 @@ func main() {
 	}
 
 	if scanner == nil {
-		log.Fatal("no scanner found")
+		log.Fatal("scanner not found")
+		log.Fatal("try un-plug and plug it in again then restart the software.")
 	}
 
 	defer scanner.Close()
@@ -73,7 +81,7 @@ func main() {
 	for {
 		bb.Reset()
 
-		// inner_loop:
+	theloop:
 		for i := 0; i < 11; i++ {
 			var buf [16]byte
 			_, err := in.Read(buf[:])
@@ -81,48 +89,18 @@ func main() {
 				panic(err)
 			}
 
-			//if buf[2] == 0x00 {
-			//	break inner_loop
-			//}
+			if buf[2] == 0x00 {
+				break theloop
+			}
 
 			bb.WriteByte(scancodes[buf[2]])
 		}
 
 		fmt.Println(bb.String())
 	}
-	/*
-
-	   	if *bufSize > 1 {
-	   		log.Print("Creating buffer...")
-	   		s, err := ep.NewStream(*size, *bufSize)
-	   		if err != nil {
-	   			log.Fatalf("ep.NewStream(): %v", err)
-	   		}
-	   		defer s.Close()
-	   		rdr = s
-	   	}
-
-	   opCtx := context.Background()
-
-	   	if *timeout > 0 {
-	   		var done func()
-	   		opCtx, done = context.WithTimeout(opCtx, *timeout)
-	   		defer done()
-	   	}
-
-	   buf := make([]byte, *size)
-	   log.Print("Reading...")
-
-	   	for i := 0; *num == 0 || i < *num; i++ {
-	   		num, err := rdr.ReadContext(opCtx, buf)
-	   		if err != nil {
-	   			log.Fatalf("Reading from device failed: %v", err)
-	   		}
-	   		os.Stdout.Write(buf[:num])
-	   	}
-	*/
 }
 
+// usb keyboard scancodes
 var scancodes = map[byte]byte{
 	0x04: 'A', // Keyboard a and A
 	0x05: 'B', // Keyboard b and B
